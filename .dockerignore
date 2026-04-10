@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.git
+Dockerfile*
+docker-compose.yml
+*.db
+aura_wellness.db
