@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA - AI Fitness Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+         :root {
+            --primary-green: #10B981;
+            --dark-bg: #030712;
+            --card-bg: #111827;
+        }
+        
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background-color: var(--dark-bg);
+            color: #e5e7eb;
+            overflow-x: hidden;
+        }
+        
+        .gradient-text {
+            background-image: linear-gradient(to right, #34D399, #10B981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        #auth-view {
+            min-height: 100vh;
+            background: radial-gradient(circle at top, rgba(16,185,129,.18), transparent 25%), linear-gradient(180deg, #02040b 0%, #050b15 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        #auth-view .auth-card {
+            max-width: 460px;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 35px 90px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(16px);
+        }
+        
+        #app-container.hidden {
+            display: none !important;
+        }
+        
+        #app-container.visible {
+            display: block !important;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .view {
+            display: none;
+            min-height: 100vh;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        
+        .view.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .form-control {
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+        }
+        
+        .nav-link {
+            padding: 8px 16px;
+            border-radius: 9999px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+        
+        .nav-link.active {
+            background-color: var(--primary-green);
+            color: white;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body class="w-full">
+
+    <!-- PAGE 1: AUTHENTICATION PORTAL -->
+    <div id="auth-view" class="view active">
+        <div class="auth-card rounded-[2rem] p-8 sm:p-10">
+            <div class="mb-8 text-center">
+                <h1 class="text-4xl font-extrabold gradient-text tracking-tight">Welcome to AURA</h1>
+                <p class="mt-3 text-gray-400">Login to access your personalized AI fitness dashboard and weekly plan generator.</p>
+            </div>
+            <p id="auth-error" class="text-center text-sm text-red-400 mt-2 mb-4"></p>
+            <form id="login-form" class="space-y-4">
+                <h2 class="text-xl font-bold text-center text-white">Login</h2>
+                <div><label class="text-sm">Username</label><input id="login-username" type="text" value="Barath" required class="w-full p-2 mt-1 rounded-md form-control"></div>
+                <div><label class="text-sm">Password</label><input id="login-password" type="password" value="password123" required class="w-full p-2 mt-1 rounded-md form-control"></div>
+                <button type="submit" class="w-full bg-green-600 font-bold py-3 rounded-lg">Login</button>
+                <p class="text-center text-sm text-gray-400">No account? <a href="#" id="show-signup-btn" class="font-medium text-green-400 hover:underline">Sign Up</a></p>
+            </form>
+            <form id="signup-form" class="space-y-4 hidden">
+                <h2 class="text-xl font-bold text-center text-white">Create Account</h2>
+                <div><label class="text-sm">Your Name / Username</label><input id="signup-name" type="text" required class="w-full p-2 mt-1 rounded-md form-control"></div>
+                <div><label class="text-sm">Password</label><input id="signup-password" type="password" required class="w-full p-2 mt-1 rounded-md form-control"></div>
+                <button type="submit" class="w-full bg-green-600 font-bold py-3 rounded-lg">Create Account</button>
+                <p class="text-center text-sm text-gray-400">Have an account? <a href="#" id="show-login-btn" class="font-medium text-green-400 hover:underline">Login</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APPLICATION CONTAINER (for logged-in users) -->
+    <div id="app-container" class="hidden">
+        <nav class="bg-card-bg/80 backdrop-blur-lg border-b border-gray-700/50 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-8 flex justify-between items-center h-16">
+                <span class="text-2xl font-bold gradient-text">AURA</span>
+                <div class="hidden md:flex items-center space-x-2" id="main-nav">
+                    <a class="nav-link active" data-view="about-view">About</a>
+                    <a class="nav-link" data-view="input-view">Questionnaire</a>
+                    <a class="nav-link" data-view="plan-view">My Plan</a>
+                    <a class="nav-link" data-view="vis-view">Visualization</a>
+                    <a class="nav-link" data-view="feedback-view">Feedback</a>
+                </div>
+                <div>
+                    <span id="welcome-user" class="text-gray-300 text-sm mr-4"></span>
+                    <button id="logout-btn" class="text-sm font-bold text-red-400 hover:underline">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <div id="app-content">
+            <!-- PAGE 2: ABOUT / INTRODUCTION -->
+            <div id="about-view" class="view max-w-7xl mx-auto py-20 px-4 sm:px-8">
+                <div class="text-center space-y-12">
+                    <div>
+                        <h1 class="text-5xl font-extrabold text-white">Welcome to <span class="gradient-text">FitGAN AI</span></h1>
+                        <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-300">Your personalized fitness transformation partner. Unlock your potential through the power of AI and science-based fitness. Our intelligent engine designs dynamic diet and workout plans uniquely tailored to you.</p>
+                    </div>
+
+                    <div class="text-left space-y-8 max-w-4xl mx-auto">
+                        <div>
+                            <h2 class="text-3xl font-bold text-white mb-4">Understand Your Body Type</h2>
+                            <p class="text-gray-400">Each body type has a different metabolic response, and AURA makes sure your plan fits perfectly. We analyze whether you are an <span class="text-green-400 font-semibold">Ectomorph</span> (naturally slim), <span class="text-green-400 font-semibold">Mesomorph</span>                                (naturally athletic), or <span class="text-green-400 font-semibold">Endomorph</span> (naturally broader) to optimize your nutrition and training for the best results.</p>
+                        </div>
+                        <div>
+                            <h2 class="text-3xl font-bold text-white mb-4">The Science Behind AURA</h2>
+                            <p class="text-gray-400">We calculate your Total Daily Energy Expenditure (TDEE) and create a diet that balances Proteins, Carbohydrates, and Fats. Our AI adjusts sets, reps, and rest times based on your experience level and chosen goal, ensuring you
+                                are always progressing.</p>
+                        </div>
+                        <div>
+                            <h2 class="text-3xl font-bold text-white mb-4">Visual Progress Tracking</h2>
+                            <p class="text-gray-400">Every user gets a side-by-side dotted biometric image showing your current physique vs. your dream physique. This is generated dynamically by our AI, helping you see your transformation, not just read numbers.</p>
+                        </div>
+                    </div>
+                    <button id="get-started-btn" class="mt-8 bg-green-600 text-white font-bold py-4 px-10 rounded-lg text-lg">Get Started</button>
+                </div>
+            </div>
+
+            <!-- PAGE 3: INPUT QUESTIONNAIRE -->
+            <div id="input-view" class="view max-w-7xl mx-auto py-12 px-4 sm:px-8">
+                <h1 class="text-4xl font-bold text-center text-white mb-8">Your AI Blueprint Questionnaire</h1>
+                <form id="aura-form" class="bg-card-bg p-8 rounded-2xl border border-gray-700/50">
+                    <div id="questionnaire-fields" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+                    <button type="submit" class="w-full md:w-auto mx-auto block mt-8 bg-green-600 text-white font-bold py-4 px-12 rounded-lg">Generate My Plan</button>
+                </form>
+            </div>
+
+            <!-- PAGE 4: WEEKLY PLAN CHARTS -->
+            <div id="plan-view" class="view max-w-7xl mx-auto py-12 px-4 sm:px-8">
+                <h1 class="text-4xl font-bold text-center text-white mb-8">Your AI-Generated Blueprint</h1>
+                <div id="plan-results" class="space-y-12"></div>
+                <div class="text-center mt-12">
+                    <button id="next-week-btn" class="bg-blue-600 text-white font-bold py-4 px-10 rounded-lg text-lg hover:bg-blue-700 transition-all">Generate Next Week's Plan</button>
+                </div>
+            </div>
+
+            <!-- PAGE 5: BIOMETRIC VISUALIZATION -->
+            <div id="vis-view" class="view max-w-7xl mx-auto py-12 px-4 sm:px-8">
+                <h1 class="text-4xl font-bold text-center text-white mb-8">Biometric Dot Matrix</h1>
+                <div id="vis-results" class="bg-card-bg p-8 rounded-xl border border-gray-700"></div>
+            </div>
+
+            <!-- PAGE 6: USER FEEDBACK -->
+            <div id="feedback-view" class="view max-w-7xl mx-auto py-12 px-4 sm:px-8">
+                <h1 class="text-4xl font-bold text-center text-white mb-8">Submit Feedback</h1>
+                <div class="max-w-xl mx-auto bg-card-bg p-8 rounded-xl border border-gray-700">
+                    <form id="feedback-form" class="space-y-4">
+                        <p class="text-gray-400">Help us improve AURA by sharing your thoughts or suggestions.</p>
+                        <div><label>Your Feedback</label><textarea id="feedback-text" rows="5" class="w-full p-2 mt-1 rounded-md form-control" required></textarea></div>
+                        <button type="submit" class="w-full bg-green-600 font-bold py-3 rounded-lg">Submit Feedback</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ALTERNATE CODE: OBJECT-ORIENTED STRUCTURE ---
+        const App = {
+                // --- STATE & DATABASE ---
+                state: {
+                    currentUser: null
+                },
+                database: {
+                    "barath": {
+                        name: "Barath",
+                        password: "password123",
+                        profile: null,
+                        week: 1
+                    }
+                },
+                elements: {},
+
+                // --- INITIALIZATION ---
+                init() {
+                    this.cacheElements();
+                    this.bindEvents();
+                    this.buildQuestionnaire();
+                },
+
+                // --- CACHE DOM ELEMENTS ---
+                cacheElements() {
+                    this.elements = {
+                        authView: document.getElementById('auth-view'),
+                        appContainer: document.getElementById('app-container'),
+                        mainNav: document.getElementById('main-nav'),
+                        loginForm: document.getElementById('login-form'),
+                        signupForm: document.getElementById('signup-form'),
+                        auraForm: document.getElementById('aura-form'),
+                        feedbackForm: document.getElementById('feedback-form'),
+                        logoutBtn: document.getElementById('logout-btn'),
+                        nextWeekBtn: document.getElementById('next-week-btn'),
+                        getStartedBtn: document.getElementById('get-started-btn'),
+                        welcomeUser: document.getElementById('welcome-user'),
+                        authError: document.getElementById('auth-error'),
+                        planResults: document.getElementById('plan-results'),
+                        visResults: document.getElementById('vis-results'),
+                        questionnaireFields: document.getElementById('questionnaire-fields'),
+                    };
+                },
+
+                // --- BIND EVENT LISTENERS ---
+                bindEvents() {
+                    document.getElementById('show-signup-btn').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.toggleAuthForms(true);
+                    });
+                    document.getElementById('show-login-btn').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.toggleAuthForms(false);
+                    });
+                    this.elements.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+                    this.elements.signupForm.addEventListener('submit', (e) => this.handleSignup(e));
+                    this.elements.logoutBtn.addEventListener('click', () => this.handleLogout());
+                    this.elements.mainNav.addEventListener('click', (e) => this.handleNav(e));
+                    this.elements.auraForm.addEventListener('submit', (e) => this.handlePlanGeneration(e));
+                    this.elements.feedbackForm.addEventListener('submit', (e) => this.handleFeedback(e));
+                    this.elements.nextWeekBtn.addEventListener('click', () => this.handleNextWeek());
+                    this.elements.getStartedBtn.addEventListener('click', () => this.switchView('input-view'));
+                },
+
+                // --- VIEW MANAGEMENT ---
+                switchView(viewId) {
+                    document.querySelectorAll('#app-content .view').forEach(v => v.classList.remove('active'));
+                    const viewElement = document.getElementById(viewId);
+                    if (viewElement) viewElement.classList.add('active');
+                    this.elements.mainNav.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.toggle('active', link.dataset.view === viewId);
+                    });
+                    window.scrollTo(0, 0);
+                },
+
+                // *** FIXED: Added missing handleNav function ***
+                handleNav(e) {
+                    if (e.target.tagName === 'A' && e.target.dataset.view) {
+                        e.preventDefault();
+                        this.switchView(e.target.dataset.view);
+                    }
+                },
+
+                toggleAuthForms(showSignup) {
+                    this.elements.loginForm.classList.toggle('hidden', showSignup);
+                    this.elements.signupForm.classList.toggle('hidden', !showSignup);
+                    this.elements.authError.textContent = '';
+                },
+
+                // --- AUTHENTICATION ---
+                handleLogin(e) {
+                    e.preventDefault();
+                    const username = this.elements.loginForm.querySelector('#login-username').value.toLowerCase();
+                    const pass = this.elements.loginForm.querySelector('#login-password').value;
+                    const user = this.database[username];
+                    if (user && user.password === pass) {
+                        this.state.currentUser = {
+                            name: user.name
+                        };
+                        this.elements.authView.classList.remove('active');
+                        this.elements.authView.style.display = 'none';
+                        this.elements.appContainer.classList.remove('hidden');
+                        this.elements.appContainer.classList.add('visible');
+                        this.elements.welcomeUser.textContent = `Welcome, ${this.state.currentUser.name}! (Week ${user.week})`;
+                        if (user.profile) {
+                            this.regenerateAllData(user.profile);
+                            this.switchView('plan-view');
+                        } else {
+                            this.switchView('about-view');
+                        }
+                    } else {
+                        this.elements.authError.textContent = "Invalid credentials.";
+                    }
+                },
+
+                handleSignup(e) {
+                    e.preventDefault();
+                    const name = this.elements.signupForm.querySelector('#signup-name').value;
+                    const username = name.toLowerCase();
+                    const pass = this.elements.signupForm.querySelector('#signup-password').value;
+                    if (!name || !pass) {
+                        this.elements.authError.textContent = "All fields are required.";
+                        return;
+                    }
+                    if (this.database[username]) {
+                        this.elements.authError.textContent = "Username already exists.";
+                        return;
+                    }
+                    this.database[username] = {
+                        name,
+                        password: pass,
+                        profile: null,
+                        week: 1
+                    };
+                    this.state.currentUser = {
+                        name
+                    };
+                    this.elements.authView.classList.remove('active');
+                    this.elements.authView.style.display = 'none';
+                    this.elements.appContainer.classList.remove('hidden');
+                    this.elements.appContainer.classList.add('visible');
+                    this.elements.welcomeUser.textContent = `Welcome, ${this.state.currentUser.name}! (Week 1)`;
+                    this.switchView('about-view');
+                },
+
+                handleLogout() {
+                    this.state.currentUser = null;
+                    this.elements.authView.classList.add('active');
+                    this.elements.authView.style.display = 'flex';
+                    this.elements.appContainer.classList.add('hidden');
+                    this.elements.appContainer.classList.remove('visible');
+                },
+
+                // --- CORE APP LOGIC ---
+                handlePlanGeneration(e) {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const profile = {};
+                    for (let [key, value] of formData.entries()) {
+                        profile[key] = isNaN(value) || value === '' ? value : parseFloat(value);
+                    }
+                    this.database[this.state.currentUser.name.toLowerCase()].profile = profile;
+                    this.regenerateAllData(profile);
+                    this.switchView('plan-view');
+                },
+
+                handleNextWeek() {
+                    const user = this.database[this.state.currentUser.name.toLowerCase()];
+                    if (user && user.profile) {
+                        user.week += 1;
+                        this.elements.welcomeUser.textContent = `Welcome, ${this.state.currentUser.name}! (Week ${user.week})`;
+                        alert(`Generating plan for Week ${user.week}...`);
+                        this.regenerateAllData(user.profile);
+                        this.switchView('plan-view');
+                    }
+                },
+
+                handleFeedback(e) {
+                    e.preventDefault();
+                    alert('Thank you for your feedback!');
+                    e.target.reset();
+                },
+
+                // --- DATA RENDERING ---
+                regenerateAllData(profile) {
+                    const user = this.database[this.state.currentUser.name.toLowerCase()];
+                    this.elements.planResults.innerHTML = this.generatePlanHTML(profile, user.week);
+                    this.elements.visResults.innerHTML = this.generateVisHTML(profile);
+                    this.drawDottedPhysique('current-physique', profile, false);
+                    this.drawDottedPhysique('target-physique', profile, true);
+                },
+
+                generatePlanHTML(profile, week) {
+                    const intensityMultiplier = 1 + ((week - 1) * 0.05);
+                    const calorieTarget = 2700 + ((week - 1) * 50);
+                    const proteinGrams = 170,
+                        carbsGrams = 290,
+                        fatGrams = 80;
+
+                    const workoutPlan = {
+                        Monday: [{
+                            name: 'Bench Press',
+                            sets: 4,
+                            reps: `${Math.round(8*intensityMultiplier)}-${Math.round(10*intensityMultiplier)}`,
+                            rest: '90s'
+                        }, {
+                            name: 'Incline Dumbbell Press',
+                            sets: 3,
+                            reps: '12',
+                            rest: '60s'
+                        }, {
+                            name: 'Tricep Pushdowns',
+                            sets: 3,
+                            reps: '12',
+                            rest: '60s'
+                        }, {
+                            name: 'Dips',
+                            sets: 3,
+                            reps: '15',
+                            rest: '60s'
+                        }, {
+                            name: 'Cable Flys',
+                            sets: 2,
+                            reps: '15',
+                            rest: '45s'
+                        }],
+                        Tuesday: [{
+                            name: 'Barbell Squats',
+                            sets: 4,
+                            reps: '10',
+                            rest: '90s'
+                        }, {
+                            name: 'Lunges',
+                            sets: 3,
+                            reps: '12',
+                            rest: '75s'
+                        }, {
+                            name: 'Leg Press',
+                            sets: 3,
+                            reps: '12',
+                            rest: '75s'
+                        }, {
+                            name: 'Calf Raises',
+                            sets: 4,
+                            reps: '20',
+                            rest: '45s'
+                        }, {
+                            name: 'Hamstring Curls',
+                            sets: 3,
+                            reps: '15',
+                            rest: '60s'
+                        }],
+                        Wednesday: 'REST',
+                        Thursday: [{
+                            name: 'Pull-Ups',
+                            sets: 4,
+                            reps: '10',
+                            rest: '90s'
+                        }, {
+                            name: 'Lat Pulldown',
+                            sets: 3,
+                            reps: '12',
+                            rest: '75s'
+                        }, {
+                            name: 'Barbell Row',
+                            sets: 3,
+                            reps: '10',
+                            rest: '75s'
+                        }, {
+                            name: 'Dumbbell Curl',
+                            sets: 3,
+                            reps: '15',
+                            rest: '60s'
+                        }, {
+                            name: 'Face Pulls',
+                            sets: 3,
+                            reps: '15',
+                            rest: '60s'
+                        }],
+                        Friday: [{
+                            name: 'Deadlifts',
+                            sets: 3,
+                            reps: '10',
+                            rest: '120s'
+                        }, {
+                            name: 'Push-Ups',
+                            sets: 3,
+                            reps: '15',
+                            rest: '60s'
+                        }, {
+                            name: 'Burpees',
+                            sets: 3,
+                            reps: '15',
+                            rest: '60s'
+                        }, {
+                            name: 'Plank',
+                            sets: 3,
+                            reps: '60s',
+                            rest: '60s'
+                        }, {
+                            name: 'Mountain Climbers',
+                            sets: 3,
+                            reps: '20',
+                            rest: '45s'
+                        }],
+                        Saturday: [{
+                            name: 'HIIT Sprints',
+                            sets: 10,
+                            reps: '100m',
+                            rest: '60s'
+                        }],
+                        Sunday: 'REST'
+                    };
+                    const dietPlan = {
+                        'Breakfast': {
+                            food: 'Oats, 2 boiled eggs, 1 banana',
+                            cals: 450,
+                            p: 25,
+                            c: 55,
+                            f: 10
+                        },
+                        'Mid-Morning': {
+                            food: 'Protein shake + Apple',
+                            cals: 250,
+                            p: 30,
+                            c: 20,
+                            f: 5
+                        },
+                        'Lunch': {
+                            food: 'Brown rice, grilled chicken, veggies, curd',
+                            cals: 600,
+                            p: 45,
+                            c: 70,
+                            f: 15
+                        },
+                        'Evening': {
+                            food: 'Nuts + Green tea + Fruit',
+                            cals: 200,
+                            p: 10,
+                            c: 20,
+                            f: 8
+                        },
+                        'Dinner': {
+                            food: 'Roti + Paneer/Tofu + Salad + Soup',
+                            cals: 500,
+                            p: 35,
+                            c: 45,
+                            f: 10
+                        },
+                        'Pre-Bed': {
+                            food: 'Casein protein or milk + almonds',
+                            cals: 150,
+                            p: 20,
+                            c: 10,
+                            f: 5
+                        }
+                    };
+                    return `<div class="space-y-12"><div><h3 class="text-2xl font-bold text-white mb-4">Weekly Workout Chart (Week ${week})</h3><div class="overflow-hidden bg-card-bg rounded-xl border border-gray-700"><table class="w-full text-left text-gray-300">${Object.keys(workoutPlan).map(day => `<tbody class="border-b border-gray-700"><tr><td colspan="4" class="px-6 py-3 bg-gray-700/50 font-bold text-white">${day}</td></tr>${workoutPlan[day] === 'REST' ? `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500 italic">REST DAY</td></tr>` : `<tr class="text-xs uppercase text-gray-400"><th class="px-6 py-2">Exercise</th><th class="px-6 py-2">Sets</th><th class="px-6 py-2">Reps</th><th class="px-6 py-2">Rest</th></tr>${workoutPlan[day].map(ex => `<tr><td class="px-6 py-3">${ex.name}</td><td class="px-6 py-3">${ex.sets}</td><td class="px-6 py-3">${ex.reps}</td><td class="px-6 py-3">${ex.rest}</td></tr>`).join('')}`}</tbody>`).join('')}</table></div></div><div><h3 class="text-2xl font-bold text-white mb-4">Daily Nutrition Chart</h3><p class="text-center mb-4 text-gray-400">Target: ~${calorieTarget} kcal | P: ${proteinGrams}g, C: ${carbsGrams}g, F: ${fatGrams}g</p><div class="overflow-hidden bg-card-bg rounded-xl border border-gray-700"><table class="w-full text-sm text-left text-gray-300"><thead class="text-xs text-white uppercase bg-gray-700/50"><tr><th class="px-6 py-3">Meal</th><th class="px-6 py-3">Food</th><th class="px-6 py-3">Cals</th><th class="px-6 py-3">P</th><th class="px-6 py-3">C</th><th class="px-6 py-3">F</th></tr></thead><tbody>${Object.keys(dietPlan).map(meal => `<tr class="border-b border-gray-700"><td class="px-6 py-4 font-bold">${meal}</td><td class="px-6 py-4">${dietPlan[meal].food}</td><td class="px-6 py-4">${dietPlan[meal].cals}</td><td class="px-6 py-4 text-green-400">${dietPlan[meal].p}g</td><td class="px-6 py-4 text-yellow-400">${dietPlan[meal].c}g</td><td class="px-6 py-4 text-red-400">${dietPlan[meal].f}g</td></tr>`).join('')}</tbody></table></div></div></div>`;
+        },
+
+        generateVisHTML(profile) { return `<div class="flex flex-col sm:flex-row gap-8 justify-around"><div class="text-center"><h4 class="font-semibold text-lg mb-2">Current Biometrics</h4><p class="text-sm text-gray-400">Weight: ${profile.weight_kg}kg</p><canvas id="current-physique" width="200" height="300"></canvas></div><div class="text-center"><h4 class="font-semibold text-lg mb-2">Target Physique</h4><p class="text-sm text-gray-400">Goal: ${profile.primary_goal}</p><canvas id="target-physique" width="200" height="300"></canvas></div></div>`; },
+
+        drawDottedPhysique(canvasId, profile, isTarget) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let m = 1.0, f = 1.0;
+            if (profile.body_type === 'Ectomorph') { m = 0.85; f = 0.8; }
+            if (profile.body_type === 'Endomorph') { m = 1.05; f = 1.25; }
+            if (isTarget) {
+                if (profile.primary_goal === 'Muscle Gain') { m *= 1.25; f *= 0.9; }
+                if (profile.primary_goal === 'Fat Loss') { m *= 1.05; f *= 0.7; }
+            }
+            const p = {
+                head: { x: 100, y: 35, rx: 15, ry: 18 }, neck: { x: 100, y: 60, rx: 8 * m, ry: 8 },
+                chest: { x: 100, y: 95, rx: 45 * m, ry: 25 }, stomach: { x: 100, y: 140, rx: 30 * f, ry: 35 },
+                l_shoulder: { x: 50, y: 85, rx: 18 * m, ry: 18 }, r_shoulder: { x: 150, y: 85, rx: 18 * m, ry: 18 },
+                l_arm: { x: 48, y: 120, rx: 12 * m, ry: 28 }, r_arm: { x: 152, y: 120, rx: 12 * m, ry: 28 },
+                l_forearm: { x: 48, y: 165, rx: 9 * m, ry: 28 }, r_forearm: { x: 152, y: 165, rx: 9 * m, ry: 28 },
+                l_wrist: { x: 48, y: 195, rx: 5, ry: 5 }, r_wrist: { x: 152, y: 195, rx: 5, ry: 5 },
+                l_quad: { x: 78, y: 210, rx: 18 * m, ry: 45 }, r_quad: { x: 122, y: 210, rx: 18 * m, ry: 45 },
+                l_calf: { x: 78, y: 265, rx: 10 * m, ry: 30 }, r_calf: { x: 122, y: 265, rx: 10 * m, ry: 30 },
+                l_foot: { x: 78, y: 295, rx: 12, ry: 5 }, r_foot: { x: 122, y: 295, rx: 12, ry: 5 }
+            };
+            function draw(part, color, density) {
+                if (!part) return;
+                ctx.fillStyle = color;
+                const n = Math.floor(part.rx * part.ry * density);
+                for (let i = 0; i < n; i++) {
+                    const a = Math.random() * 2 * Math.PI, r = Math.sqrt(Math.random());
+                    const x = part.x + part.rx * r * Math.cos(a), y = part.y + part.ry * r * Math.sin(a);
+                    ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            const muscleColor = '#10B981', fatColor = '#FBBF24', baseColor = '#e5e7eb';
+            draw(p.chest, muscleColor, 0.25); draw(p.stomach, muscleColor, 0.1);
+            draw(p.l_shoulder, muscleColor, 0.3); draw(p.r_shoulder, muscleColor, 0.3);
+            draw(p.l_arm, muscleColor, 0.3); draw(p.r_arm, muscleColor, 0.3);
+            draw(p.l_forearm, muscleColor, 0.3); draw(p.r_forearm, muscleColor, 0.3);
+            draw(p.l_quad, muscleColor, 0.25); draw(p.r_quad, muscleColor, 0.25);
+            draw(p.l_calf, muscleColor, 0.25); draw(p.r_calf, muscleColor, 0.25);
+            draw(p.stomach, fatColor, 0.2); draw(p.chest, fatColor, 0.05);
+            draw(p.l_quad, fatColor, 0.05); draw(p.r_quad, fatColor, 0.05);
+            draw(p.head, baseColor, 0.2); draw(p.neck, baseColor, 0.2);
+            draw(p.l_wrist, baseColor, 0.5); draw(p.r_wrist, baseColor, 0.5);
+            draw(p.l_foot, baseColor, 0.5); draw(p.r_foot, baseColor, 0.5);
+        },
+
+        buildQuestionnaire() {
+             const questions = [
+                { group: '1. Basic Details', id: 'age', label: 'Age (Years)', type: 'number', value: 22 }, { group: '1. Basic Details', id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
+                { group: '1. Basic Details', id: 'height_cm', label: 'Height (cm)', type: 'number', value: 175 }, { group: '1. Basic Details', id: 'weight_kg', label: 'Weight (kg)', type: 'number', value: 68 },
+                { group: '1. Basic Details', id: 'target_weight', label: 'Target Weight (kg)', type: 'number', value: 72 },
+                { group: '2. Fitness & Health', id: 'body_type', label: 'Body Type', type: 'select', options: ['Ectomorph', 'Mesomorph', 'Endomorph'] },
+                { group: '2. Fitness & Health', id: 'experience_level', label: 'Experience Level', type: 'select', options: ['Beginner', 'Intermediate', 'Advanced'] },
+                { group: '2. Fitness & Health', id: 'activity_level', label: 'Daily Activity Level', type: 'select', options: ['Sedentary', 'Lightly Active', 'Moderate', 'Active'] },
+                { group: '2. Fitness & Health', id: 'body_fat_percent', label: 'Body Fat % (Optional)', type: 'number', placeholder: "e.g., 18" },
+                { group: '2. Fitness & Health', id: 'health_conditions', label: 'Health Conditions', type: 'text', placeholder: 'e.g., Diabetes, None'},
+                { group: '2. Fitness & Health', id: 'injury_limitations', label: 'Injury Information', type: 'text', placeholder: 'e.g., Knee pain, None'},
+                { group: '3. Goal Settings', id: 'primary_goal', label: 'Fitness Goal', type: 'select', options: ['Fat Loss', 'Muscle Gain', 'Strength', 'Body Toning'] },
+                { group: '3. Goal Settings', id: 'target_muscle_focus', label: 'Target Muscle Focus', type: 'select', options: ['Full Body', 'Arms', 'Core', 'Legs'] },
+                { group: '3. Goal Settings', id: 'program_duration', label: 'Program Duration (Weeks)', type: 'select', options: [4, 8, 12, 16] },
+                { group: '3. Goal Settings', id: 'days_per_week', label: 'Workout Days/Week', type: 'select', options: [2,3,4,5,6] },
+                { group: '4. Diet & Lifestyle', id: 'diet_type', label: 'Diet Type', type: 'select', options: ['Balanced', 'Veg', 'Non-Veg', 'Keto'] },
+                { group: '4. Diet & Lifestyle', id: 'meal_frequency', label: 'Daily Meal Frequency', type: 'select', options: [3, 4, 5] },
+                { group: '4. Diet & Lifestyle', id: 'water_intake', label: 'Daily Water Intake (L)', type: 'number', value: 2.5 },
+                { group: '4. Diet & Lifestyle', id: 'allergies', label: 'Food Allergies', type: 'text', placeholder: 'e.g., Lactose, Gluten, None'},
+                { group: '4. Diet & Lifestyle', id: 'favorite_foods', label: 'Favorite Foods', type: 'text', placeholder: 'e.g., Eggs, Chicken, Oats'},
+                { group: '4. Diet & Lifestyle', id: 'avoid_foods', label: 'Foods to Avoid', type: 'text', placeholder: 'e.g., Broccoli, Fish'},
+                { group: '4. Diet & Lifestyle', id: 'sleep_hours', label: 'Average Sleep (hours)', type: 'number', value: 7 },
+                { group: '4. Diet & Lifestyle', id: 'stress_level', label: 'Average Stress Level', type: 'select', options: ['Low', 'Medium', 'High'] },
+            ];
+            const groups = {};
+            questions.forEach(q => { if (!groups[q.group]) groups[q.group] = []; groups[q.group].push(q); });
+            this.elements.questionnaireFields.innerHTML = Object.keys(groups).map(groupName => {
+                const fieldsHTML = groups[groupName].map(q => {
+                    let input;
+                    if (q.type === 'select') {
+                        const options = q.options.map(o => `<option value="${o}">${o}</option>`).join('');
+                        input = `<select name="${q.id}" class="w-full p-2 mt-1 rounded-md form-control">${options}</select>`;
+                    } else {
+                        input = `<input type="${q.type}" name="${q.id}" class="w-full p-2 mt-1 rounded-md form-control" value="${q.value || ''}" placeholder="${q.placeholder || ''}" required>`;
+                    }
+                    return `<div class="space-y-1"><label class="text-sm font-semibold text-gray-300">${q.label}</label>${input}</div>`;
+                }).join('');
+                return `<div class="space-y-4"><h3 class="font-bold text-xl text-green-400 border-b border-green-700/50 pb-2">${groupName}</h3>${fieldsHTML}</div>`;
+            }).join('');
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => App.init());
+    </script>
+</body>
+
+</html>
